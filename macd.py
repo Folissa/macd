@@ -3,6 +3,7 @@ import zipfile
 import glob
 
 import pandas
+import matplotlib.pyplot as plot
 
 
 def prepare_data():
@@ -36,8 +37,9 @@ def concatenate_data(data_frames):
     return pandas.concat(data_frames, ignore_index=True)
 
 
-def get_last_n_rows(data_frames, n):
-    return data_frames.tail(n)
+def get_last_n_rows(data_frame, n):
+    last_n_rows = data_frame.tail(n)
+    return last_n_rows.reset_index(drop=True)
 
 
 def add_headers(data_frames):
@@ -53,6 +55,18 @@ def convert_to_datetime(data_frame):
     return data_frame
 
 
+def plot_data(data_frame):
+    plot.figure(figsize=(10, 6))
+    plot.plot(data_frame['close_time'], data_frame['close'], label='Close price')
+    plot.xlabel('Time')
+    plot.ylabel('Price')
+    plot.title('Close price over time')
+    plot.legend()
+    plot.savefig('close_price_plot.png')
+    plot.close()
+
+
 if __name__ == "__main__":
     data = prepare_data()
     print(data)
+    plot_data(data)
