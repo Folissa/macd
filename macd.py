@@ -3,7 +3,8 @@ import zipfile
 import glob
 
 import pandas
-import matplotlib.pyplot as plot
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 def prepare_data():
@@ -55,18 +56,81 @@ def convert_to_datetime(data_frame):
     return data_frame
 
 
-def plot_data(data_frame):
-    plot.figure(figsize=(10, 6))
-    plot.plot(data_frame['close_time'], data_frame['close'], label='Close price')
-    plot.xlabel('Time')
-    plot.ylabel('Price')
-    plot.title('Close price over time')
-    plot.legend()
-    plot.savefig('close_price_plot.png')
-    plot.close()
+def print_close_price(data_frame):
+    plt.figure(figsize=(24, 12))
+    plt.plot(data_frame["close_time"], data_frame["close"], label="Close Price", color="cornflowerblue")
+    place_xticks(data_frame)
+    plt.xlabel("Time")
+    plt.ylabel("Price")
+    plt.title("Close Price Of The ETHUSDC Over Time")
+    plt.legend()
+    plt.grid(True)
+    plt.savefig("close_price_plot.png")
+    plt.close()
+
+
+def exponential_moving_average(data_iterable, start, n):
+    alpha = 2 / (n + 1)
+
+    numerator = 0
+    denominator = 0
+    for i in range(n + 1):
+        if start - i < 0:
+            break
+        numerator += data_iterable[start - i] * (1 - alpha) ** i
+        denominator += (1 - alpha) ** i
+
+    ema = numerator / denominator
+
+    return ema
+
+
+def moving_average_convergence_divergence(data_frame, start):
+    ema_12 = exponential_moving_average(data_frame, start, 12)
+    ema_26 = exponential_moving_average(data_frame, start, 26)
+    macd_value = ema_12 - ema_26
+    return macd_value
+
+
+def calculate_macd_line(data_frame):
+    return [moving_average_convergence_divergence(data_frame["close"], i) for i in range(len(data))]
+
+
+def calculate_signal_line(macd_line):
+    signal_line = []
+    for i in range(len(macd_line)):
+        if i < 9:
+            signal_line.append(None)
+            continue
+        ema_9 = exponential_moving_average(macd_line, i, 9)
+        signal_line.append(ema_9)
+    return signal_line
+
+
+def print_macd_indicator(data_frame, macd_line, signal_line):
+    plt.figure(figsize=(24, 12))
+    plt.plot(data_frame["close_time"], macd_line, label="MACD Line", color="mediumorchid")
+    plt.plot(data_frame["close_time"], signal_line, label="Signal Line", color="dodgerblue")
+    place_xticks(data_frame)
+    plt.title("MACD Indicator For The ETHUSDC Over Time")
+    plt.xlabel("Time")
+    plt.ylabel("MACD Value")
+    plt.legend()
+    plt.grid(True)
+    plt.savefig("macd_plot.png")
+    plt.close()
+
+
+def place_xticks(data_frame):
+    date_range = pandas.date_range(start=data_frame["close_time"].min(), end=data_frame["close_time"].max(), freq='D')
+    plt.xticks(date_range, rotation=45)
+    plt.xticks(rotation=45)
 
 
 if __name__ == "__main__":
     data = prepare_data()
-    print(data)
-    plot_data(data)
+    macd = calculate_macd_line(data)
+    signal = calculate_signal_line(macd)
+
+    print_close_price(data)
+    print_macd_indicator(data, macd, signal)
