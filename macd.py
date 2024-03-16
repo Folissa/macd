@@ -3,14 +3,13 @@ import zipfile
 import glob
 
 import pandas
-import numpy as np
 import matplotlib.pyplot as plt
 
 
-def prepare_data():
-    extract_zip_files("data/zipped_data", "data/unzipped_data")
+def prepare_data(coin_pair_name):
+    extract_zip_files(f"data/zipped_data/{coin_pair_name}", f"data/unzipped_data/{coin_pair_name}")
 
-    csv_files = get_sorted_csv_files("data/unzipped_data")
+    csv_files = get_sorted_csv_files(f"data/unzipped_data/{coin_pair_name}")
     data_frames = [pandas.read_csv(csv_file, header=None) for csv_file in csv_files]
     add_headers(data_frames)
 
@@ -56,16 +55,17 @@ def convert_to_datetime(data_frame):
     return data_frame
 
 
-def print_close_price(data_frame):
+def print_close_price(data_frame, coin_pair_name):
     plt.figure(figsize=(24, 12))
     plt.plot(data_frame["close_time"], data_frame["close"], label="Close Price", color="cornflowerblue")
     place_xticks(data_frame)
     plt.xlabel("Time")
     plt.ylabel("Price")
-    plt.title("Close Price Of The ETHUSDC Over Time")
+    plt.gca().yaxis.set_major_formatter('${:,.0f}'.format)
+    plt.title(f"Close Price Of The {coin_pair_name} Over Time")
     plt.legend()
     plt.grid(True)
-    plt.savefig("close_price_plot.png")
+    plt.savefig(f"plots/{coin_pair_name}/close_price_plot_.png")
     plt.close()
 
 
@@ -96,28 +96,42 @@ def calculate_macd_line(data_frame):
     return [moving_average_convergence_divergence(data_frame["close"], i) for i in range(len(data))]
 
 
-def calculate_signal_line(macd_line):
+def calculate_signal_line(macd_values):
     signal_line = []
-    for i in range(len(macd_line)):
+    for i in range(len(macd_values)):
         if i < 9:
             signal_line.append(None)
             continue
-        ema_9 = exponential_moving_average(macd_line, i, 9)
+        ema_9 = exponential_moving_average(macd_values, i, 9)
         signal_line.append(ema_9)
     return signal_line
 
 
-def print_macd_indicator(data_frame, macd_line, signal_line):
+def print_macd_indicator(data_frame, macd_values, signal_values, coin_pair_name):
     plt.figure(figsize=(24, 12))
-    plt.plot(data_frame["close_time"], macd_line, label="MACD Line", color="mediumorchid")
-    plt.plot(data_frame["close_time"], signal_line, label="Signal Line", color="dodgerblue")
+    plt.plot(data_frame["close_time"], macd_values, label="MACD Line", color="mediumorchid")
+    plt.plot(data_frame["close_time"], signal_values, label="Signal Line", color="dodgerblue")
     place_xticks(data_frame)
-    plt.title("MACD Indicator For The ETHUSDC Over Time")
+    plt.title(f"MACD Indicator For The {coin_pair_name} Over Time")
     plt.xlabel("Time")
     plt.ylabel("MACD Value")
     plt.legend()
     plt.grid(True)
-    plt.savefig("macd_plot.png")
+    plt.savefig(f"plots/{coin_pair_name}/macd_plot.png")
+    plt.close()
+
+
+def print_portfolio(data_frame, portfolio_values, coin_pair_name):
+    plt.figure(figsize=(24, 12))
+    plt.plot(data_frame["close_time"], portfolio_values, label="Total Value Of Portfolio", color="mediumorchid")
+    place_xticks(data_frame)
+    plt.title("Portfolio Value Over Time")
+    plt.xlabel("Time")
+    plt.ylabel("Portfolio Value")
+    plt.gca().yaxis.set_major_formatter('${:,.0f}'.format)
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(f"plots/{coin_pair_name}/portfolio_plot.png")
     plt.close()
 
 
@@ -127,10 +141,50 @@ def place_xticks(data_frame):
     plt.xticks(rotation=45)
 
 
+def create_dirs(coin_pair_name):
+    if not os.path.exists(f"plots/{coin_pair_name}"):
+        os.makedirs(f"plots/{coin_pair_name}")
+
+
+def investing_algorithm(initial_funds, prices, macd_values, signal_values):
+    funds = initial_funds
+    coins = 0
+    portfolio_values = [initial_funds]
+
+    for i in range(1, len(macd_values)):
+        if any(x is None for x in [macd_values[i], macd_values[i - 1], signal_values[i], signal_values[i - 1]]):
+            portfolio_values.append(funds + coins * prices[i])
+            continue
+        if macd_values[i] > signal_values[i] and macd_values[i - 1] <= signal_values[i - 1]:
+            # Buy signal
+            if funds > 0:
+                coins_to_buy = funds / prices[i]
+                coins += coins_to_buy
+                funds -= coins_to_buy * prices[i]
+        elif macd_values[i] < signal_values[i] and macd_values[i - 1] >= signal_values[i - 1]:
+            # Sell signal
+            if coins > 0:
+                funds += coins * prices[i]
+                coins = 0
+        portfolio_values.append(funds + coins * prices[i])
+
+    final_funds = funds + coins * prices.iloc[-1]
+    return final_funds, portfolio_values
+
+
 if __name__ == "__main__":
-    data = prepare_data()
+    initial_funds = 100000
+
+    create_dirs("ETHUSDC")
+
+    data = prepare_data("ETHUSDC")
     macd = calculate_macd_line(data)
     signal = calculate_signal_line(macd)
+    final_funds, portfolio = investing_algorithm(initial_funds, data["close"], macd, signal)
 
-    print_close_price(data)
-    print_macd_indicator(data, macd, signal)
+    print_close_price(data, "ETHUSDC")
+    print_macd_indicator(data, macd, signal, "ETHUSDC")
+    print_portfolio(data, portfolio, "ETHUSDC")
+
+    print(f"Funds invested at the beginning of the value of ${initial_funds:,.2f},"
+          f" in the end are worth ${final_funds:,.2f} after using the algorithm based on MACD index.")
