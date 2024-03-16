@@ -1,4 +1,5 @@
 import os
+import sys
 import zipfile
 import glob
 
@@ -144,6 +145,8 @@ def place_xticks(data_frame):
 def create_dirs(coin_pair_name):
     if not os.path.exists(f"plots/{coin_pair_name}"):
         os.makedirs(f"plots/{coin_pair_name}")
+    if not os.path.exists(f"unzipped_data/{coin_pair_name}"):
+        os.makedirs(f"unzipped_data/{coin_pair_name}")
 
 
 def investing_algorithm(initial_funds, prices, macd_values, signal_values):
@@ -173,18 +176,22 @@ def investing_algorithm(initial_funds, prices, macd_values, signal_values):
 
 
 if __name__ == "__main__":
+    coin_pair_name = sys.argv[1]
+    if not coin_pair_name:
+        raise IndexError("The coin pair name is not specified.")
+
     initial_funds = 100000
 
-    create_dirs("ETHUSDC")
+    create_dirs(coin_pair_name)
 
-    data = prepare_data("ETHUSDC")
+    data = prepare_data(coin_pair_name)
     macd = calculate_macd_line(data)
     signal = calculate_signal_line(macd)
     final_funds, portfolio = investing_algorithm(initial_funds, data["close"], macd, signal)
 
-    print_close_price(data, "ETHUSDC")
-    print_macd_indicator(data, macd, signal, "ETHUSDC")
-    print_portfolio(data, portfolio, "ETHUSDC")
+    print_close_price(data, coin_pair_name)
+    print_macd_indicator(data, macd, signal, coin_pair_name)
+    print_portfolio(data, portfolio, coin_pair_name)
 
     print(f"Funds invested at the beginning of the value of ${initial_funds:,.2f},"
           f" in the end are worth ${final_funds:,.2f} after using the algorithm based on MACD index.")
