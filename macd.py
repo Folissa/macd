@@ -126,7 +126,7 @@ def print_portfolio(data_frame, portfolio_values, coin_pair_name):
     plt.figure(figsize=(24, 12))
     plt.plot(data_frame["close_time"], portfolio_values, label="Total Value Of Portfolio", color="mediumorchid")
     place_xticks(data_frame)
-    plt.title("Portfolio Value Over Time")
+    plt.title(f"Portfolio Value Over Time While Investing In The {coin_pair_name} Using Algorithm Based On The MACD")
     plt.xlabel("Time")
     plt.ylabel("Portfolio Value")
     plt.gca().yaxis.set_major_formatter('${:,.0f}'.format)
@@ -175,6 +175,44 @@ def investing_algorithm(initial_funds, prices, macd_values, signal_values):
     return final_funds, portfolio_values
 
 
+def simple_algorithm(initial_funds, prices):
+    funds = initial_funds
+    coins = 0
+
+    # Buy all the coins at the beginning
+    if funds > 0:
+        coins_to_buy = funds / prices[0]
+        coins += coins_to_buy
+        funds -= coins_to_buy * prices[0]
+
+    final_funds = funds + coins * prices.iloc[-1]
+    return final_funds
+
+
+def print_information(data, initial_funds, final_funds, simple_final_funds):
+    final_change = final_funds / initial_funds * 100
+    simple_final_change = simple_final_funds / initial_funds * 100
+
+    print(data)
+
+    print(f"In the end, funds invested at the beginning of the value of ${initial_funds:,.2f}, "
+          f"are worth ${final_funds:,.2f} after using the algorithm based on the MACD index.\n"
+          f"The change is {final_change:,.2f}% of the initial value.\n")
+
+    print(f"If we simply bought all the coins at the beginning (with ${initial_funds:,.2f} for the initial funds) "
+          f"and sold them at the end, the value would be ${simple_final_funds:,.2f}.\n"
+          f"The change is {simple_final_change:,.2f}% of the initial value.\n")
+
+    if final_change > simple_final_change:
+        print(f"The algorithm based on the MACD index outperformed the simple algorithm by "
+              f"{final_change - simple_final_change:,.2f} percentage points of the change.")
+    elif final_change < simple_final_change:
+        print(f"The simple algorithm outperformed the algorithm based on the MACD index by "
+              f"{simple_final_change - final_change:,.2f} percentage points of the change.")
+    else:
+        print("The algorithm based on the MACD index performed equally well as the simple algorithm.")
+
+
 if __name__ == "__main__":
     coin_pair_name = sys.argv[1]
     if not coin_pair_name:
@@ -188,10 +226,10 @@ if __name__ == "__main__":
     macd = calculate_macd_line(data)
     signal = calculate_signal_line(macd)
     final_funds, portfolio = investing_algorithm(initial_funds, data["close"], macd, signal)
+    simple_final_funds = simple_algorithm(initial_funds, data['close'])
 
     print_close_price(data, coin_pair_name)
     print_macd_indicator(data, macd, signal, coin_pair_name)
     print_portfolio(data, portfolio, coin_pair_name)
 
-    print(f"Funds invested at the beginning of the value of ${initial_funds:,.2f},"
-          f" in the end are worth ${final_funds:,.2f} after using the algorithm based on MACD index.")
+    print_information(data, initial_funds, final_funds, simple_final_funds)
