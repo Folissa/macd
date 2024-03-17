@@ -62,7 +62,7 @@ def print_close_price(data_frame, coin_pair_name):
     place_xticks(data_frame)
     plt.xlabel("Time")
     plt.ylabel("Price")
-    plt.gca().yaxis.set_major_formatter('${:,.0f}'.format)
+    plt.gca().yaxis.set_major_formatter("${:,.0f}".format)
     plt.title(f"Close Price Of The {coin_pair_name} Over Time")
     plt.legend()
     plt.grid(True)
@@ -108,10 +108,21 @@ def calculate_signal_line(macd_values):
     return signal_line
 
 
-def print_macd_indicator(data_frame, macd_values, signal_values, coin_pair_name):
+def print_macd_indicator(data_frame, macd_values, signal_values, coin_pair_name, buy_points, sell_points):
     plt.figure(figsize=(24, 12))
     plt.plot(data_frame["close_time"], macd_values, label="MACD Line", color="mediumorchid")
     plt.plot(data_frame["close_time"], signal_values, label="Signal Line", color="dodgerblue")
+
+    # Plot buy points
+    buy_times = [data_frame["close_time"].iloc[i] for i in buy_points]
+    buy_macd = [macd_values[i] for i in buy_points]
+    plt.scatter(buy_times, buy_macd, color="olivedrab", marker="^", label="Buy")
+
+    # Plot sell points
+    sell_times = [data_frame["close_time"].iloc[i] for i in sell_points]
+    sell_macd = [macd_values[i] for i in sell_points]
+    plt.scatter(sell_times, sell_macd, color="red", marker="v", label="Sell")
+
     place_xticks(data_frame)
     plt.title(f"MACD Indicator For The {coin_pair_name} Over Time")
     plt.xlabel("Time")
@@ -129,7 +140,7 @@ def print_portfolio(data_frame, portfolio_values, coin_pair_name):
     plt.title(f"Portfolio Value Over Time While Investing In The {coin_pair_name} Using Algorithm Based On The MACD")
     plt.xlabel("Time")
     plt.ylabel("Portfolio Value")
-    plt.gca().yaxis.set_major_formatter('${:,.0f}'.format)
+    plt.gca().yaxis.set_major_formatter("${:,.0f}".format)
     plt.legend()
     plt.grid(True)
     plt.savefig(f"plots/{coin_pair_name}/portfolio_plot.png")
@@ -137,7 +148,7 @@ def print_portfolio(data_frame, portfolio_values, coin_pair_name):
 
 
 def place_xticks(data_frame):
-    date_range = pandas.date_range(start=data_frame["close_time"].min(), end=data_frame["close_time"].max(), freq='D')
+    date_range = pandas.date_range(start=data_frame["close_time"].min(), end=data_frame["close_time"].max(), freq="D")
     plt.xticks(date_range, rotation=45)
     plt.xticks(rotation=45)
 
@@ -153,6 +164,8 @@ def investing_algorithm(initial_funds, prices, macd_values, signal_values):
     funds = initial_funds
     coins = 0
     portfolio_values = [initial_funds]
+    buy_points = []
+    sell_points = []
 
     for i in range(1, len(macd_values)):
         if any(x is None for x in [macd_values[i], macd_values[i - 1], signal_values[i], signal_values[i - 1]]):
@@ -161,18 +174,20 @@ def investing_algorithm(initial_funds, prices, macd_values, signal_values):
         if macd_values[i] > signal_values[i] and macd_values[i - 1] <= signal_values[i - 1]:
             # Buy signal
             if funds > 0:
+                buy_points.append(i)
                 coins_to_buy = funds / prices[i]
                 coins += coins_to_buy
                 funds -= coins_to_buy * prices[i]
         elif macd_values[i] < signal_values[i] and macd_values[i - 1] >= signal_values[i - 1]:
             # Sell signal
             if coins > 0:
+                sell_points.append(i)
                 funds += coins * prices[i]
                 coins = 0
         portfolio_values.append(funds + coins * prices[i])
 
     final_funds = funds + coins * prices.iloc[-1]
-    return final_funds, portfolio_values
+    return final_funds, portfolio_values, buy_points, sell_points
 
 
 def simple_algorithm(initial_funds, prices):
@@ -214,7 +229,6 @@ def print_information(data, initial_funds, final_funds, simple_final_funds):
 
 
 if __name__ == "__main__":
-    # TODO: Marks for sell/buy points on MACD plot
     coin_pair_name = str(sys.argv[1])
     initial_funds = float(sys.argv[2])
     if not coin_pair_name:
@@ -227,11 +241,11 @@ if __name__ == "__main__":
     data = prepare_data(coin_pair_name)
     macd = calculate_macd_line(data)
     signal = calculate_signal_line(macd)
-    final_funds, portfolio = investing_algorithm(initial_funds, data["close"], macd, signal)
-    simple_final_funds = simple_algorithm(initial_funds, data['close'])
+    final_funds, portfolio, buy_points, sell_points = investing_algorithm(initial_funds, data["close"], macd, signal)
+    simple_final_funds = simple_algorithm(initial_funds, data["close"])
 
     print_close_price(data, coin_pair_name)
-    print_macd_indicator(data, macd, signal, coin_pair_name)
+    print_macd_indicator(data, macd, signal, coin_pair_name, buy_points, sell_points)
     print_portfolio(data, portfolio, coin_pair_name)
 
     print_information(data, initial_funds, final_funds, simple_final_funds)
