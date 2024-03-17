@@ -214,11 +214,13 @@ def print_information(data, initial_funds, final_funds, simple_final_funds):
 
 
 if __name__ == "__main__":
-    coin_pair_name = sys.argv[1]
+    # TODO: Marks for sell/buy points on MACD plot
+    coin_pair_name = str(sys.argv[1])
+    initial_funds = float(sys.argv[2])
     if not coin_pair_name:
         raise IndexError("The coin pair name is not specified.")
-
-    initial_funds = 100000
+    if not initial_funds:
+        raise IndexError("The initial funds value is not specified.")
 
     create_dirs(coin_pair_name)
 
