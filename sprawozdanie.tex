@@ -1,0 +1,145 @@
+\documentclass{article}
+\usepackage{listings}
+\usepackage{svg}
+\usepackage{adjustbox}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{enumitem}
+\usepackage{geometry}
+\usepackage{float}
+\usepackage[section]{placeins}
+\geometry{a4paper,total={170mm,257mm},left=20mm,top=20mm,}
+\title{Sprawozdanie z efektywności wskaźnika giełdowego MACD}
+\author{Anna Berkowska}
+\date{16 marca 2024}
+\begin{document}
+    \maketitle
+    \section*{Wstęp}
+
+    Wskaźnik MACD (Moving Average Convergence Divergence) jest jednym z najbardziej popularnych narzędzi analizy technicznej używanych do identyfikacji trendów oraz sygnałów kupna i sprzedaży na rynku finansowym. Pomimo swojej popularności, MACD, podobnie jak wiele innych wskaźników technicznych, posiada pewne ograniczenia, w tym opóźnienie w generowaniu sygnałów.
+
+    Wskaźnik ten składa się z dwóch wykresóœ: MACD i linii sygnału (SIGNAL). Miejsce, w którym MACD przecina SIGNAL od dołu jest sygnałem do zakupu akcji. Miejsce, w którym MACD przecina SIGNAL od góry, jest sygnałem do sprzedaży akcji.
+
+    Celem niniejszego projektu jest symulacja strategii kupna i sprzedaży kryptowaluty ETHUSDC przy użyciu wskaźnika MACD. W projekcie zostanie przedstawiony kod programu, który umożliwia automatyczną symulację działania strategii opartej na sygnałach MACD. Zbadane zostaną również wyniki tej strategii w kontekście potencjalnych zysków i strat.
+
+    \section*{Opis przebiegu symulacji}
+
+    W ramach przeprowadzonej symulacji, zbadano skuteczność strategii inwestycyjnej opartej na wskaźniku MACD w kontekście handlu kryptowalutami ETHUSDC. W ramach symulacji, zbadano dwa scenariusze inwestycyjne:
+
+    \begin{enumerate}
+        \item Inwestycja początkowa w wysokości \$2,252,000.98 (1000 ETHUSDC), z użyciem strategii opartej na wskaźniku MACD (algorytm podany został przedstawiony poniżej).
+        \item Inwestycja początkowa w wysokości \$2,252,000.98 (1000 ETHUSDC), z użyciem strategii prostego zakupu i sprzedaży wszystkich monet na początku i na końcu okresu analizy.
+    \end{enumerate}
+
+    Pod uwagę wzięto okres analizy wynoszący 1000 godzin. Wszelkie obliczenia wykonywane były na podstawie godziny zamknięcia. W ramach symulacji, zbadano wartość portfela inwestycyjnego w zależności od zastosowanej strategii inwestycyjnej.
+
+    W przypadku strategii opartej na wskaźniku MACD, wartość portfela inwestycyjnego na koniec analizowanego okresu wynosiła \$2,729,377.71, co jest równowartością 121.20\% wartości początkowej.
+
+    W przypadku strategii prostego zakupu i sprzedaży, wartość portfela inwestycyjnego na koniec analizowanego okresu wynosiła \$3,890,858.51, co jest równowartością 172.77\% wartości początkowej.
+
+    Różnica w wartości portfela inwestycyjnego pomiędzy zastosowanymi strategiami wynosi \$1,161,480.80, co stanowi różnicę w wysokości 51.57 punktów procentowych.
+
+    W ramach symulacji wygenerowane zostały wykresy cen kryptowaluty ETHUSDC, MACD wraz z linią sygnałową, a także wykres wartości portfela w ciągu całej symulacji. W celu lepszego zrozumienia wyników, wygenerowane zostały także wykresy na podstawie ostatnich 200 godzin z okresu analizy.
+
+    \begin{figure}[H]
+        \begin{lstlisting}[language=Python, caption={Source code in Python}, label={lst:lstlisting}, frame=single, numbers=left]
+    def investing_algorithm(initial_funds, prices, macd_values, signal_values):
+        funds = initial_funds
+        coins = 0
+        portfolio_values = [initial_funds]
+        buy_points = []
+        sell_points = []
+
+        for i in range(1, len(macd_values)):
+            if any(x is None for x in [macd_values[i], macd_values[i - 1],
+                                       signal_values[i], signal_values[i - 1]]):
+                portfolio_values.append(funds + coins * prices[i])
+                continue
+            if macd_values[i] > signal_values[i] and \
+               macd_values[i - 1] <= signal_values[i - 1]:
+                # Buy signal
+                if funds > 0:
+                    buy_points.append(i)
+                    coins_to_buy = funds / prices[i]
+                    coins += coins_to_buy
+                    funds -= coins_to_buy * prices[i]
+            elif macd_values[i] < signal_values[i] and \
+                 macd_values[i - 1] >= signal_values[i - 1]:
+                # Sell signal
+                if coins > 0:
+                    sell_points.append(i)
+                    funds += coins * prices[i]
+                    coins = 0
+            portfolio_values.append(funds + coins * prices[i])
+
+        final_funds = funds + coins * prices.iloc[-1]
+        return final_funds, portfolio_values, buy_points, sell_points
+
+
+    def simple_algorithm(initial_funds, prices):
+        funds = initial_funds
+        coins = 0
+
+        # Buy all the coins at the beginning
+        if funds > 0:
+            coins_to_buy = funds / prices[0]
+            coins += coins_to_buy
+            funds -= coins_to_buy * prices[0]
+
+        final_funds = funds + coins * prices.iloc[-1]
+        return final_funds
+        \end{lstlisting}\label{fig:figure}
+    \end{figure}
+
+    \section*{Wykresy i wyniki}
+
+    \begin{figure}[H]
+        \centering
+        \makebox[\textwidth][c]{\includesvg[width=1.4\textwidth]{/home/anna/University/Projects/fourth-semester/MN/macd/plots/ETHUSDC/close_price_plot_1000.svg}}
+        \caption{Close Price Plot}
+        \label{fig:close_price_1000}
+    \end{figure}
+
+    \begin{figure}[H]
+        \centering
+        \makebox[\textwidth][c]{\includesvg[width=1.4\textwidth]{/home/anna/University/Projects/fourth-semester/MN/macd/plots/ETHUSDC/macd_plot_1000.svg}}
+        \caption{MACD Plot}
+        \label{fig:macd_plot_1000}
+    \end{figure}
+
+    \begin{figure}[H]
+        \centering
+        \makebox[\textwidth][c]{\includesvg[width=1.4\textwidth]{/home/anna/University/Projects/fourth-semester/MN/macd/plots/ETHUSDC/portfolio_plot_1000.svg}}
+        \caption{Portfolio Plot}
+        \label{fig:portfolio_plot_1000}
+    \end{figure}
+
+     \begin{figure}[H]
+        \centering
+        \makebox[\textwidth][c]{\includesvg[width=1.4\textwidth]{/home/anna/University/Projects/fourth-semester/MN/macd/plots/ETHUSDC/close_price_plot_200.svg}}
+        \caption{Close Price Plot}
+        \label{fig:close_price_200}
+    \end{figure}
+
+    \begin{figure}[H]
+        \centering
+        \makebox[\textwidth][c]{\includesvg[width=1.4\textwidth]{/home/anna/University/Projects/fourth-semester/MN/macd/plots/ETHUSDC/macd_plot_200.svg}}
+        \caption{MACD Plot}
+        \label{fig:macd_plot_200}
+    \end{figure}
+
+    \begin{figure}[H]
+        \centering
+        \makebox[\textwidth][c]{\includesvg[width=1.4\textwidth]{/home/anna/University/Projects/fourth-semester/MN/macd/plots/ETHUSDC/portfolio_plot_200.svg}}
+        \caption{Portfolio Plot}
+        \label{fig:portfolio_plot_200}
+    \end{figure}
+
+    \section*{Zakończenie}
+
+    Na podstawie przedstawionej symulacji, można stwierdzić, że strategia inwestycyjna oparta na wskaźniku MACD nie jest w stanie zapewnić takich samych zysków, jak strategia prostego zakupu i sprzedaży. Wartość portfela inwestycyjnego na koniec analizowanego okresu była o 51.57 punktów procentowych niższa w przypadku strategii opartej na wskaźniku MACD w porównaniu do strategii prostego zakupu i sprzedaży.
+
+    Wynika to z opóźnienia w generowaniu sygnałów przez wskaźnik MACD, co sprawia, że inwestorzy mogą przegapić okazje do zakupu i sprzedaży. Jednakże, mimo niższej efektywności, analiza wskaźnika MACD może nadal być użyteczna jako jedno z wielu narzędzi w analizie technicznej, umożliwiając inwestorom lepsze zrozumienie dynamiki rynku i potencjalnych kierunków zmian cen kryptowalut.
+
+    Ważne jest, aby inwestorzy zrozumieli ograniczenia wskaźnika MACD i rozważyli jego zastosowanie w połączeniu z innymi narzędziami i strategiami analizy technicznej w celu zwiększenia efektywności inwestycji i minimalizacji ryzyka. Dalsze badania i testowanie różnych strategii handlowych mogą przyczynić się do lepszego zrozumienia zachowania wskaźnika MACD oraz jego potencjalnego zastosowania w praktyce inwestycyjnej na rynku kryptowalut.
+\end{document}

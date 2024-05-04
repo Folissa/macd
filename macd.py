@@ -128,7 +128,6 @@ def investing_algorithm(initial_funds, prices, macd_values, signal_values):
         portfolio_values.append(funds + coins * prices[i])
 
     final_funds = funds + coins * prices.iloc[-1]
-    print(buy_points)
     return final_funds, portfolio_values, buy_points, sell_points
 
 
@@ -152,9 +151,20 @@ def place_xticks(data_frame):
     plt.xticks(rotation=45)
 
 
-def print_close_price(data_frame, coin_pair_name, number_of_samples):
-    plt.figure(figsize=(24, 12))
+def print_close_price(data_frame, buy_points, sell_points, coin_pair_name, number_of_samples):
+    plt.figure(figsize=(24, 10))
     plt.plot(data_frame["close_time"], data_frame["close"], label="Close Price", color="cornflowerblue")
+
+    # Plot buy points
+    buy_times = [data_frame["close_time"].iloc[i] for i in buy_points]
+    buy_prices = [data_frame["close"].iloc[i] for i in buy_points]  # Corrected line
+    plt.scatter(buy_times, buy_prices, color="olivedrab", marker="^", label="Buy")  # Corrected line
+
+    # Plot sell points
+    sell_times = [data_frame["close_time"].iloc[i] for i in sell_points]
+    sell_prices = [data_frame["close"].iloc[i] for i in sell_points]  # Corrected line
+    plt.scatter(sell_times, sell_prices, color="red", marker="v", label="Sell")  # Corrected line
+
     place_xticks(data_frame)
     plt.xlabel("Time")
     plt.ylabel("Price")
@@ -166,22 +176,10 @@ def print_close_price(data_frame, coin_pair_name, number_of_samples):
     plt.close()
 
 
-def print_macd_indicator(data_frame, macd_values, signal_values, coin_pair_name, buy_points, sell_points, number_of_samples):
-    plt.figure(figsize=(24, 12))
+def print_macd_indicator(data_frame, macd_values, signal_values, coin_pair_name, number_of_samples):
+    plt.figure(figsize=(24, 10))
     plt.plot(data_frame["close_time"], macd_values, label="MACD Line", color="mediumorchid")
     plt.plot(data_frame["close_time"], signal_values, label="Signal Line", color="dodgerblue")
-
-    # Plot buy points
-    buy_times = [data_frame["close_time"].iloc[i] for i in buy_points]
-    buy_macd = [macd_values[i] for i in buy_points]
-    print(buy_times)
-    print(buy_macd)
-    plt.scatter(buy_times, buy_macd, color="olivedrab", marker="^", label="Buy")
-
-    # Plot sell points
-    sell_times = [data_frame["close_time"].iloc[i] for i in sell_points]
-    sell_macd = [macd_values[i] for i in sell_points]
-    plt.scatter(sell_times, sell_macd, color="red", marker="v", label="Sell")
 
     place_xticks(data_frame)
     plt.title(f"MACD Indicator For The {coin_pair_name} Over Time")
@@ -194,7 +192,7 @@ def print_macd_indicator(data_frame, macd_values, signal_values, coin_pair_name,
 
 
 def print_portfolio(data_frame, portfolio_values, coin_pair_name, number_of_samples):
-    plt.figure(figsize=(24, 12))
+    plt.figure(figsize=(24, 10))
     plt.plot(data_frame["close_time"], portfolio_values, label="Total Value Of Portfolio", color="mediumorchid")
     place_xticks(data_frame)
     plt.title(f"Portfolio Value Over Time While Investing In The {coin_pair_name} Using Algorithm Based On The MACD")
@@ -207,13 +205,9 @@ def print_portfolio(data_frame, portfolio_values, coin_pair_name, number_of_samp
     plt.close()
 
 
-
 def print_information(data, initial_funds, final_funds, simple_final_funds):
     final_change = final_funds / initial_funds * 100
     simple_final_change = simple_final_funds / initial_funds * 100
-
-    pandas.set_option('display.max_rows', None)
-    print(data)
 
     print(f"In the end, funds invested at the beginning of the value of ${initial_funds:,.2f}, "
           f"are worth ${final_funds:,.2f} after using the algorithm based on the MACD index.\n"
@@ -246,9 +240,9 @@ if __name__ == "__main__":
     final_funds, portfolio, buy_points, sell_points = investing_algorithm(initial_funds, data["close"], macd, signal)
     simple_final_funds = simple_algorithm(initial_funds, data["close"])
 
-    print_close_price(data, coin_pair_name, number_of_samples)
+    print_close_price(data, buy_points, sell_points, coin_pair_name, number_of_samples)
     print(data)
-    print_macd_indicator(data, macd, signal, coin_pair_name, buy_points, sell_points, number_of_samples)
+    print_macd_indicator(data, macd, signal, coin_pair_name, number_of_samples)
     print_portfolio(data, portfolio, coin_pair_name, number_of_samples)
 
     print_information(data, initial_funds, final_funds, simple_final_funds)
